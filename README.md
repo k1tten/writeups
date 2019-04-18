@@ -1,2 +1,2 @@
 # writeups
-My CTF &amp; Bug Bounty writups
+My CTF &amp; Bug Bounty writeups
