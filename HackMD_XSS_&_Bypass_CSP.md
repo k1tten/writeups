@@ -88,7 +88,7 @@ frame-src *; child-src *; connect-src *; base-uri 'none'; form-action 'self' htt
 
 ![csp](https://inside.pixiv.blog/wp-content/uploads/2018/10/csp-bypass-chart.png)
 
-CSP rule 如果在 `script-src` 同時有 `www.google-analytics.com` 以及 `unsafe-inline` 的話，就可以執行任意的 JavaScript，到這裡還不是很確定是否可以 Exploit，於是我們馬上動手試試，首先開啟 Google Tag Manager，設定一個變數，並放入你想要執行的 JavaScript
+CSP rule 如果在 `script-src` 同時有 `www.google-analytics.com` 以及 `unsafe-eval` 的話，就可以執行任意的 JavaScript，到這裡還不是很確定是否可以 Exploit，於是我們馬上動手試試，首先開啟 Google Tag Manager，設定一個變數，並放入你想要執行的 JavaScript
 
 ![](https://i.imgur.com/K863Bl0.png)
 
