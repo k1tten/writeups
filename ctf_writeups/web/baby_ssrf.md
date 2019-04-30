@@ -6,6 +6,10 @@ Description:
 The goats thought they were safe behind the walls from the threat of the wolf!
 But they were not aware of the wolf's plan to bypass the wall!
 
+[English](https://github.com/k1tten/writeups/blob/master/ctf_writeups/web/baby_ssrf.md#solution---zh-tw)
+
+[中文版](https://github.com/k1tten/writeups/blob/master/ctf_writeups/web/baby_ssrf.md#solution---en)
+
 ### Solution - EN
 
 The first hint was in the header, then we can get the source code:
@@ -587,4 +591,4 @@ Decimal	HEX	Character
 255	ff	Ｎ
 ```
 
-#ssrf #easy #Node.js
+#ssrf #Node.js
