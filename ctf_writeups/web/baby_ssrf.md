@@ -1,6 +1,4 @@
-# ASIS CTF - 2019
-
-###### Contributed by k1tten
+# ASIS CTF quals - 2019
 
 ## Baby SSRF - 70 / Web
 
@@ -160,7 +158,6 @@ indexOf(.):-1
 ### Reference
 
 https://blog.ssrf.in/post/nodejs-unicode-encoding-and-ssrf/
-
 https://mathiasbynens.be/notes/javascript-encoding
 
 
@@ -418,3 +415,4 @@ Decimal	HEX	Character
 255	ff	Ｎ
 ```
 
+#ssrf #easy #Node.js
